@@ -1,0 +1,41 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configurazione ANM",
+        "data": {
+          "api_base_url": "URL Base API",
+          "update_interval": "Intervallo Aggiornamento (secondi)",
+          "timeout": "Timeout (secondi)"
+        },
+        "description": "Configura le impostazioni API ANM. Puoi usare i valori predefiniti o personalizzarli secondo necessità."
+      },
+      "stops": {
+        "title": "Aggiungi Fermate",
+        "data": {
+          "stop_id": "ID Fermata",
+          "stop_name": "Nome Fermata",
+          "line_filter": "Filtra per Linee (separato da virgola, opzionale)"
+        },
+        "data_description": {
+          "stop_id": "Inserisci l'ID della fermata",
+          "stop_name": "Inserisci un nome per questa fermata",
+          "line_filter": "es., R1, R2, R3 (lascia vuoto per tutte le linee)"
+        },
+        "description": "Aggiungi fermate da monitorare. Puoi aggiungere più fermate e filtrare opzionalmente per linea.\n\nFermate attualmente configurate:\n{stops_list}"
+      }
+    },
+    "error": {
+      "cannot_connect": "Impossibile connettersi all'API ANM",
+      "invalid_stop_id": "ID fermata non valido",
+      "invalid_auth": "Autenticazione non valida",
+      "unknown": "Errore sconosciuto",
+      "stop_already_configured": "Questa fermata è già configurata",
+      "required": "Questo campo è obbligatorio"
+    },
+    "abort": {
+      "already_configured": "ANM è già configurato",
+      "no_stops_configured": "È richiesta almeno una fermata"
+    }
+  }
+}

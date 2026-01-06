@@ -1,0 +1,12 @@
+{
+  "domain": "anm",
+  "name": "ANM",
+  "version": "1.0.0",
+  "integration_type": "device",
+  "documentation": "https://github.com/LBRDan/anm-hass",
+  "issue_tracker": "https://github.com/LBRDan/anm-hass/issues",
+  "codeowners": ["@LBRDan"],
+  "config_flow": true,
+  "iot_class": "cloud_polling",
+  "requirements": ["aiohttp>=3.8.1"]
+}

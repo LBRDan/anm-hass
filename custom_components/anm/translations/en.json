@@ -1,0 +1,41 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Setup ANM",
+        "data": {
+          "api_base_url": "API Base URL",
+          "update_interval": "Update Interval (seconds)",
+          "timeout": "Timeout (seconds)"
+        },
+        "description": "Configure the ANM API settings. You can use the defaults or customize as needed."
+      },
+      "stops": {
+        "title": "Manage Stops",
+        "data": {
+          "stop_id": "Stop ID",
+          "stop_name": "Stop Name",
+          "line_filter": "Filter by Lines (comma-separated, optional)"
+        },
+        "data_description": {
+          "stop_id": "Enter the stop ID",
+          "stop_name": "Enter a name for this stop",
+          "line_filter": "e.g., R1, R2, R3 (leave empty for all lines)"
+        },
+        "description": "Add stops to monitor. You can add multiple stops and optionally filter by lines.\n\nCurrently configured stops:\n{stops_list}"
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to ANM API",
+      "invalid_stop_id": "Invalid stop ID",
+      "invalid_auth": "Invalid authentication",
+      "unknown": "Unknown error",
+      "stop_already_configured": "This stop is already configured",
+      "required": "This field is required"
+    },
+    "abort": {
+      "already_configured": "ANM is already configured",
+      "no_stops_configured": "At least one stop must be configured"
+    }
+  }
+}

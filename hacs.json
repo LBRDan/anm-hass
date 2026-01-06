@@ -1,0 +1,10 @@
+{
+  "name": "ANM Integration",
+  "content_in_root": false,
+  "zip_release": true,
+  "filename": "custom_components/anm/__init__.py",
+  "hide_default_branch": true,
+  "homeassistant": "2024.1.0",
+  "hacs": "0.24.0",
+  "country": "IT"
+}

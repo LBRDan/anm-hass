@@ -2,6 +2,12 @@
 
 Custom Home Assistant integration for monitoring ANM (Azienda Napoletana Mobilita) public transport stops.
 
+## AI Assisted Notice
+
+This project has been developed with a huge amount of assistance from AI tools (GLM 4.7, GPT-4.1 etc...)
+While every effort has been made to ensure the accuracy and reliability of the code, users should be aware that AI-generated content may contain errors or omissions. Users are advised to review and test the code thoroughly before deploying it in a production environment.
+The author assumes no responsibility for any issues arising from the use of this code.
+
 ## Features
 
 - Monitor multiple bus/tram stops in Naples
