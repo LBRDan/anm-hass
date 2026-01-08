@@ -66,7 +66,6 @@ Each monitored stop creates a sensor entity with:
   - `destination`: Destination of the vehicle
   - `arrival_time`: Predicted arrival time (ISO format)
   - `time_minutes`: Time until arrival in minutes
-  - `vehicle_id`: Unique vehicle identifier
 - `last_updated`: Last successful API fetch timestamp
 
 ## Finding Stop IDs
@@ -110,15 +109,16 @@ make test-unit   # Config flow and coordinator tests
 #### Manual Setup
 
 ```bash
+
 # Create a virtual environment
-python -m venv .venv
+uv venv
 source .venv/bin/activate
 
 # Install dependencies
-pip install -r requirements-test.txt
+uv sync
 
 # Run tests
-pytest tests/ -v
+uv run pytest tests/ -v
 ```
 
 ### Testing with local Home Assistant using Docker

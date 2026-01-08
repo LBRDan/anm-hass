@@ -53,7 +53,7 @@ ruff format custom_components/ tests/
 
 # Sort imports
 make sort-imports
-isort custom_components/ tests/
+ruff check --select I --fix custom_components/ tests/
 
 # Lint code
 make lint

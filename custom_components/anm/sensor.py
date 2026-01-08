@@ -3,10 +3,15 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any
+from zoneinfo import ZoneInfo
 
-from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorEntityDescription,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -55,7 +60,7 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class ANMStopSensor(CoordinatorEntity, SensorEntity):
+class ANMStopSensor(CoordinatorEntity[ANMDataUpdateCoordinator], SensorEntity):
     """Sensor representing an ANM stop."""
 
     def __init__(
@@ -82,10 +87,8 @@ class ANMStopSensor(CoordinatorEntity, SensorEntity):
         return self._stop_name
 
     @property
-    def device_class(self):
+    def device_class(self) -> SensorDeviceClass:
         """Return the device class of the sensor."""
-        from homeassistant.components.sensor import SensorDeviceClass
-
         return SensorDeviceClass.TIMESTAMP
 
     @property
@@ -106,15 +109,20 @@ class ANMStopSensor(CoordinatorEntity, SensorEntity):
 
         _LOGGER.info("Next arrivals for stop %s: %s", self._stop_id, arrivals)
         # Return the first arrival time
-        first_arrival = arrivals[0]
+        first_arrival = arrivals[0].to_dict()
         arrival_time_str = first_arrival.get(ATTR_ARRIVAL_TIME)
         if arrival_time_str:
             try:
                 # Try to parse as ISO format
                 return datetime.fromisoformat(arrival_time_str).replace(
-                    tzinfo=timezone.tzname("Europe/Rome")
+                    tzinfo=ZoneInfo("Europe/Rome")
                 )
             except (ValueError, TypeError):
+                _LOGGER.error(
+                    "Error parsing arrival time '%s' for stop %s",
+                    arrival_time_str,
+                    self._stop_id,
+                )
                 pass
 
         return None
@@ -137,12 +145,13 @@ class ANMStopSensor(CoordinatorEntity, SensorEntity):
         arrivals = stop_data.get("arrivals", [])
         formatted_arrivals = []
         for arrival in arrivals:
+            arrival_dict = arrival.to_dict()
             formatted_arrivals.append(
                 {
-                    ATTR_LINE: arrival.get(ATTR_LINE),
-                    ATTR_DESTINATION: arrival.get(ATTR_DESTINATION),
-                    ATTR_ARRIVAL_TIME: arrival.get(ATTR_ARRIVAL_TIME),
-                    ATTR_TIME_MINUTES: arrival.get(ATTR_TIME_MINUTES),
+                    ATTR_LINE: arrival_dict.get(ATTR_LINE),
+                    ATTR_DESTINATION: arrival_dict.get(ATTR_DESTINATION),
+                    ATTR_ARRIVAL_TIME: arrival_dict.get(ATTR_ARRIVAL_TIME),
+                    ATTR_TIME_MINUTES: arrival_dict.get(ATTR_TIME_MINUTES),
                 }
             )
         attrs[ATTR_NEXT_ARRIVALS] = formatted_arrivals

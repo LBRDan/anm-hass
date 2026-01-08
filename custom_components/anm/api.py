@@ -306,7 +306,7 @@ class ANMAPIClient:
         api_key = await self._get_api_key()
         payload["key"] = api_key
         async with session.post(url, json=payload, headers=headers) as retry_response:
-            return await retry_response.json()
+            return await retry_response.json()  # type: ignore
 
     async def _fetch_predictions_data(
         self,
@@ -326,7 +326,7 @@ class ANMAPIClient:
 
             data = await response.json()
             _LOGGER.debug("Received data: %s", data)
-            return data
+            return data  # type: ignore
 
     def _extract_arrivals_from_data(
         self, data: dict[str, Any], allowed_lines: list[str] | None

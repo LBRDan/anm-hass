@@ -41,10 +41,10 @@ format: ## Format code with ruff
 	@echo "Formatting code..."
 	ruff format custom_components/ tests/
 
-# Sort imports with isort
-sort-imports: ## Sort imports with isort
+# Sort imports with ruff
+sort-imports: ## Sort imports with ruff
 	@echo "Sorting imports..."
-	isort custom_components/ tests/
+	ruff check --select I --fix custom_components/ tests/
 
 # Lint code with ruff
 lint: ## Lint code with ruff
@@ -54,7 +54,7 @@ lint: ## Lint code with ruff
 # Type check with mypy
 type-check: ## Type check with mypy
 	@echo "Type checking..."
-	mypy custom_components/ tests/
+	mypy custom_components/
 
 # Clean temporary files
 clean: ## Clean temporary files

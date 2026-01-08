@@ -6,8 +6,8 @@ import logging
 
 import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.core import HomeAssistant
-from homeassistant.data_entry_flow import FlowResult
 
 from . import api
 from .const import (
@@ -84,11 +84,13 @@ class ANMConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def __init__(self) -> None:
         """Initialize the config flow."""
-        self._api_config: dict | None = None
+        self._api_config: dict = {}
         self._stops: list[dict] = []
         self._available_stops: list[dict] = []
 
-    async def async_step_choice(self, user_input=None):
+    async def async_step_choice(
+        self, user_input: dict | None = None
+    ) -> ConfigFlowResult:
         return self.async_show_menu(
             step_id="choice",
             description_placeholders={
@@ -100,18 +102,20 @@ class ANMConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             menu_options={"add_item": "Add another item", "finish": "Finish and Save"},
         )
 
-    async def async_step_add_item(self, user_input=None):
+    async def async_step_add_item(
+        self, user_input: dict | None = None
+    ) -> ConfigFlowResult:
         # Logic to show the form again
-        return await self.async_step_stops()
+        return await self.async_step_stops(user_input=user_input)
 
-    async def async_step_user(self, user_input: dict | None = None) -> FlowResult:
+    async def async_step_user(self, user_input: dict | None = None) -> ConfigFlowResult:
         """Handle the initial step - API configuration.
 
         Args:
             user_input: User input from the form
 
         Returns:
-            FlowResult indicating next action
+            ConfigFlowResult indicating next action
         """
         errors: dict[str, str] = {}
 
@@ -144,7 +148,9 @@ class ANMConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    async def async_step_stops(self, user_input: dict | None = None) -> FlowResult:
+    async def async_step_stops(
+        self, user_input: dict | None = None
+    ) -> ConfigFlowResult:
         """Handle adding stops with autocomplete from available stops."""
         errors: dict[str, str] = {}
 
@@ -201,14 +207,16 @@ class ANMConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
         return await self.async_step_choice()
 
-    async def async_step_finish(self, user_input: dict | None = None) -> FlowResult:
+    async def async_step_finish(
+        self, user_input: dict | None = None
+    ) -> ConfigFlowResult:
         """Finish the config flow and create the entry.
 
         Args:
             user_input: Not used, kept for signature compatibility
 
         Returns:
-            FlowResult creating the config entry
+            ConfigFlowResult creating the config entry
         """
         # Require at least one stop to be configured
         if not self._stops:

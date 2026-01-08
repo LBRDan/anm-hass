@@ -61,7 +61,6 @@ class ANMDataUpdateCoordinator(DataUpdateCoordinator[dict[str, dict]]):
                 data[stop_id] = {
                     "stop_id": stop_id,
                     "stop_name": stop_name,
-                    "line_filter": line_filter,
                     "arrivals": arrival_data or [],
                     "last_updated": datetime.now().isoformat(
                         sep="T", timespec="seconds"
@@ -80,10 +79,11 @@ class ANMDataUpdateCoordinator(DataUpdateCoordinator[dict[str, dict]]):
                     data[stop_id] = {
                         "stop_id": stop_id,
                         "stop_name": stop_name,
-                        "line_filter": line_filter,
                         "error": str(err),
                         "arrivals": [],
-                        "last_updated": None,
+                        "last_updated": datetime.now().isoformat(
+                            sep="T", timespec="seconds"
+                        ),
                     }
 
         if errors:
