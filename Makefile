@@ -11,10 +11,10 @@ help: ## Show this help message
 	@echo ''
 	@echo 'Usage: make [target]'
 
-# Install test dependencies
-install-deps: ## Install test dependencies using UV
-	@echo "Installing test dependencies..."
-	uv pip install -r requirements-test.txt
+# Install dependencies
+install-deps: ## Install dependencies using UV
+	@echo "Installing dependencies..."
+	uv sync
 
 # Run all tests
 test: ## Run all tests
@@ -36,10 +36,10 @@ test-coverage: ## Run tests with coverage report
 	@echo "Running tests with coverage..."
 	pytest tests/ --cov=custom_components/anm --cov-report=html --cov-report=term
 
-# Format code with black
-format: ## Format code with black
+# Format code with ruff
+format: ## Format code with ruff
 	@echo "Formatting code..."
-	black custom_components/ tests/
+	ruff format custom_components/ tests/
 
 # Sort imports with isort
 sort-imports: ## Sort imports with isort

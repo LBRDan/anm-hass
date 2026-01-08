@@ -182,7 +182,7 @@ pytest tests/test_api.py -v
 
 ### CI/CD
 
-GitHub Actions automatically runs tests on push and pull requests with Python 3.11 and 3.12.
+GitHub Actions automatically runs tests on push and pull requests with Python 3.13.
 
 ## License
 

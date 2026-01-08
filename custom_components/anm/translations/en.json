@@ -23,6 +23,9 @@
           "line_filter": "e.g., R1, R2, R3 (leave empty for all lines)"
         },
         "description": "Add stops to monitor. You can add multiple stops and optionally filter by lines.\n\nCurrently configured stops:\n{stops_list}"
+      },
+      "choice": {
+        "description": "Pick your next action.\n\nCurrently configured stops:\n{stops_list}"
       }
     },
     "error": {

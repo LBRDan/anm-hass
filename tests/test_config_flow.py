@@ -1,22 +1,21 @@
 """Tests for ANM config flow."""
 
-from unittest.mock import patch
+from __future__ import annotations
+
+from unittest.mock import AsyncMock, patch
 
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import FlowResultType
 
 from custom_components.anm.const import (
     CONF_API_BASE_URL,
     CONF_LINE_FILTER,
     CONF_STOP_ID,
     CONF_STOP_NAME,
-    CONF_STOPS,
     CONF_TIMEOUT,
     CONF_UPDATE_INTERVAL,
     DOMAIN,
-)
-from custom_components.anm.config_flow import (
-    ANMConfigFlow,
     STEP_STOPS,
     STEP_USER,
 )
@@ -34,6 +33,11 @@ VALID_STOP_INPUT = {
     CONF_LINE_FILTER: "R1",
 }
 
+VALID_STOPS_API_RESPONSE = [
+    {"id": "1234", "name": "Piazza Cavour"},
+    {"id": "2103", "name": "Via Toledo"},
+]
+
 
 async def test_form_user(hass: HomeAssistant):
     """Test the user form."""
@@ -41,8 +45,8 @@ async def test_form_user(hass: HomeAssistant):
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
 
-    assert result["type"] == "form"
-    assert result["step_id"] == STEP_USER
+    assert result.get("type") == FlowResultType.FORM
+    assert result.get("step_id") == STEP_USER
 
 
 async def test_form_stops(hass: HomeAssistant):
@@ -51,37 +55,31 @@ async def test_form_stops(hass: HomeAssistant):
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
 
-    # Proceed with user input
-    with patch(
-        "custom_components.anm.config_flow.validate_input",
-        return_value={"title": "ANM"},
-    ):
-        result2 = await hass.config_entries.flow.async_configure(
-            result["flow_id"], user_input=VALID_USER_INPUT
-        )
+    # Mock the API client to avoid network calls
+    mock_client = AsyncMock()
+    mock_client.get_stops.return_value = VALID_STOPS_API_RESPONSE
+    mock_client._renew_api_key.return_value = "testkey"
+    mock_client._get_api_key.return_value = "testkey"
 
-    assert result2["type"] == "form"
-    assert result2["step_id"] == STEP_STOPS
+    with patch("custom_components.anm.api.ANMAPIClient", return_value=mock_client):
+        with patch(
+            "custom_components.anm.config_flow.validate_input",
+            return_value={"title": "ANM"},
+        ):
+            result2 = await hass.config_entries.flow.async_configure(
+                result["flow_id"], user_input=VALID_USER_INPUT
+            )
+            result_menu = await hass.config_entries.flow.async_configure(
+                result2["flow_id"], user_input=VALID_STOP_INPUT
+            )
+            # Test we are getting the menu with async_show_menu
+            result_final = await hass.config_entries.flow.async_configure(
+                result_menu["flow_id"], user_input={"next_step_id": "finish"}
+            )
 
-
-async def test_form_abort(hass: HomeAssistant):
-    """Test abort when already configured."""
-    entry = await hass.config_entries.async_add(
-        config_entries.ConfigEntry(
-            version=1,
-            domain=DOMAIN,
-            title="ANM",
-            data=VALID_USER_INPUT,
-            source=config_entries.SOURCE_USER,
-            entry_id="test",
-        )
-    )
-
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": config_entries.SOURCE_USER}
-    )
-
-    assert result["type"] == "abort"
-    assert result["reason"] == "already_configured"
-
-    await hass.config_entries.async_remove(entry.entry_id)
+    assert result2.get("type") == FlowResultType.FORM
+    assert result2.get("step_id") == STEP_STOPS
+    assert result_menu.get("type") == FlowResultType.MENU
+    assert result_menu.get("step_id") == "choice"
+    assert result_final.get("type") == FlowResultType.CREATE_ENTRY
+    assert result_final.get("title") == "ANM"

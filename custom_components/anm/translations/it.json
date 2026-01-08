@@ -23,6 +23,9 @@
           "line_filter": "es., R1, R2, R3 (lascia vuoto per tutte le linee)"
         },
         "description": "Aggiungi fermate da monitorare. Puoi aggiungere più fermate e filtrare opzionalmente per linea.\n\nFermate attualmente configurate:\n{stops_list}"
+      },
+      "choice": {
+        "description": "Scegli la tua prossima azione.\n\nFermate attualmente configurate:\n{stops_list}"
       }
     },
     "error": {

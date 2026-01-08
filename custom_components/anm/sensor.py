@@ -1,5 +1,7 @@
 """Sensor platform for ANM integration."""
 
+from __future__ import annotations
+
 import logging
 from datetime import datetime, timezone
 from typing import Any
@@ -20,6 +22,8 @@ from .const import (
     ATTR_STOP_ID,
     ATTR_STOP_NAME,
     ATTR_TIME_MINUTES,
+    CONF_STOPS,
+    DATA_COORDINATOR,
     DOMAIN,
 )
 from .coordinator import ANMDataUpdateCoordinator
@@ -40,9 +44,9 @@ async def async_setup_entry(
 ) -> None:
     """Set up ANM sensor entities from a config entry."""
     coordinator: ANMDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id][
-        "coordinator"
+        DATA_COORDINATOR
     ]
-    stops = entry.data.get("stops", [])
+    stops = entry.data.get(CONF_STOPS, [])
 
     entities: list[ANMStopSensor] = []
     for stop in stops:
@@ -96,7 +100,7 @@ class ANMStopSensor(CoordinatorEntity, SensorEntity):
         _LOGGER.debug("Arrivals data for stop %s: %s", self._stop_id, stop_data)
         if not arrivals:
             return None
-        
+
         if len(arrivals) == 0:
             return None
 
@@ -107,7 +111,9 @@ class ANMStopSensor(CoordinatorEntity, SensorEntity):
         if arrival_time_str:
             try:
                 # Try to parse as ISO format
-                return datetime.fromisoformat(arrival_time_str).replace(tzinfo=timezone.tzname("Europe/Rome"))
+                return datetime.fromisoformat(arrival_time_str).replace(
+                    tzinfo=timezone.tzname("Europe/Rome")
+                )
             except (ValueError, TypeError):
                 pass
 

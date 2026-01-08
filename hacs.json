@@ -4,7 +4,7 @@
   "zip_release": true,
   "filename": "custom_components/anm/__init__.py",
   "hide_default_branch": true,
-  "homeassistant": "2024.1.0",
+  "homeassistant": "2025.12.0",
   "hacs": "0.24.0",
   "country": "IT"
 }

@@ -1,9 +1,11 @@
 """API client for ANM public transport."""
 
+from __future__ import annotations
+
 import logging
 import re
 import xml.etree.ElementTree as ET
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any
 
 import aiohttp
@@ -23,7 +25,15 @@ STOPS_ENDPOINT = "/ServiceInfoAnmLinee.asmx/CaricaElencoPaline"
 
 class ANMArrival:
     """Represents an arrival prediction for a line at a stop."""
-    def __init__(self, line: str, destination: str, arrival_time: str, time_minutes: int, stop_id: str) -> None:
+
+    def __init__(
+        self,
+        line: str,
+        destination: str,
+        arrival_time: str,
+        time_minutes: int,
+        stop_id: str,
+    ) -> None:
         self.line = line
         self.destination = destination
         self.arrival_time = arrival_time
@@ -38,6 +48,7 @@ class ANMArrival:
             "time_minutes": self.time_minutes,
             "stop_id": self.stop_id,
         }
+
 
 class ANMAPIClientError(Exception):
     """Exception raised for ANM API errors."""
@@ -118,7 +129,7 @@ class ANMAPIClient:
         if self._api_key is None:
             self._api_key = await self._renew_api_key()
         return self._api_key
-    
+
     def _parse_anm_time(self, time_str: str) -> datetime | None:
         """Parse ANM time format (HH:mm).
 
@@ -131,7 +142,12 @@ class ANMAPIClient:
         try:
             now = datetime.now()
             time_parsed = datetime.strptime(time_str, "%H:%M")
-            return now.replace(hour=time_parsed.hour, minute=time_parsed.minute, second=0, microsecond=0)
+            return now.replace(
+                hour=time_parsed.hour,
+                minute=time_parsed.minute,
+                second=0,
+                microsecond=0,
+            )
         except (ValueError, TypeError):
             _LOGGER.warning("Could not parse time: %s", time_str)
             return None
@@ -184,9 +200,7 @@ class ANMAPIClient:
         try:
             async with session.post(url, data=data, headers=headers) as response:
                 if response.status != 200:
-                    raise ANMAPIClientError(
-                        f"API returned status {response.status}"
-                    )
+                    raise ANMAPIClientError(f"API returned status {response.status}")
 
                 text = await response.text()
 
@@ -196,7 +210,6 @@ class ANMAPIClient:
 
                 # Find all Palina elements
                 for palina in root.findall(".//Palina"):
-                    
                     stop_id = palina.findtext("id", "")
                     name = palina.findtext("nome", "")
                     lat = float(palina.findtext("lat", 0))
@@ -223,6 +236,133 @@ class ANMAPIClient:
             _LOGGER.error("Unexpected error: %s", err)
             raise ANMAPIClientError(f"Unexpected error: {err}") from err
 
+    def _get_predictions_headers(self) -> dict[str, str]:
+        """Get headers for predictions API request."""
+        return {
+            "accept": "application/json",
+            "accept-language": "it-IT,it;q=0.9,en;q=0.8",
+            "cache-control": "no-cache",
+            "origin": "https://www.anm.it",
+            "pragma": "no-cache",
+            "referer": "https://www.anm.it/",
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+        }
+
+    def _parse_line_filter(self, line_filter: str | None) -> list[str] | None:
+        """Parse comma-separated line filter into list of lines."""
+        if not line_filter:
+            return None
+        allowed_lines = [line.strip() for line in line_filter.split(",")]
+        _LOGGER.debug("Filtering by lines: %s", allowed_lines)
+        return allowed_lines
+
+    def _create_arrival_from_item(
+        self, item: dict[str, Any], allowed_lines: list[str] | None
+    ) -> ANMArrival | None:
+        """Create ANMArrival object from API response item."""
+        # Skip error messages
+        if item.get("stato") == "Nessuna informazione alla palina.":
+            return None
+
+        line = item.get("linea", "").strip()
+
+        # Apply line filter if specified
+        if allowed_lines and line not in allowed_lines:
+            _LOGGER.debug("Skipping line %s due to filter", line)
+            return None
+
+        time_str = item.get("time", "")  # e.g. "09:46"
+        time_min = item.get("timeMin", "")  # e.g. "7" like minutes to arrival
+        destination = item.get(
+            "nome", ""
+        )  # e.g. "GIULIO CESARE - San Vitale" , Stop name
+        stop_id = item.get("id", "")  # e.g. "2103" , Stop ID
+
+        # Parse time to get actual arrival time
+        arrival_time = self._parse_anm_time(time_str)
+
+        return ANMArrival(
+            line=line,
+            destination=destination,
+            arrival_time=(
+                arrival_time.isoformat(sep="T", timespec="minutes")
+                if arrival_time
+                else time_str
+            ),
+            time_minutes=int(time_min) if time_min.isdigit() else time_min,
+            stop_id=stop_id,
+        )
+
+    async def _handle_invalid_api_key(
+        self,
+        session: aiohttp.ClientSession,
+        url: str,
+        payload: dict[str, Any],
+        headers: dict[str, str],
+    ) -> dict[str, Any]:
+        """Handle invalid API key by renewing and retrying the request."""
+        _LOGGER.info("API key invalid, renewing...")
+        self._api_key = None
+        api_key = await self._get_api_key()
+        payload["key"] = api_key
+        async with session.post(url, json=payload, headers=headers) as retry_response:
+            return await retry_response.json()
+
+    async def _fetch_predictions_data(
+        self,
+        session: aiohttp.ClientSession,
+        url: str,
+        payload: dict[str, Any],
+        headers: dict[str, str],
+    ) -> dict[str, Any]:
+        """Fetch and handle predictions API data."""
+        async with session.post(url, json=payload, headers=headers) as response:
+            text = await response.text()
+
+            if response.status != 200:
+                raise ANMAPIClientError(
+                    f"API returned status {response.status}: {text}"
+                )
+
+            data = await response.json()
+            _LOGGER.debug("Received data: %s", data)
+            return data
+
+    def _extract_arrivals_from_data(
+        self, data: dict[str, Any], allowed_lines: list[str] | None
+    ) -> list[ANMArrival]:
+        """Extract arrival objects from API response data."""
+        arrivals = list[ANMArrival]()
+        raw_arrivals = data.get("d", [])
+
+        if isinstance(raw_arrivals, list):
+            for item in raw_arrivals:
+                arrival = self._create_arrival_from_item(item, allowed_lines)
+                if arrival:
+                    arrivals.append(arrival)
+
+        # Sort by arrival time
+        arrivals.sort(key=lambda x: x.time_minutes)
+        return arrivals
+
+    def _should_return_empty(self, data: dict[str, Any]) -> bool:
+        """Check if API response indicates no information at the stop."""
+        return (
+            "d" in data
+            and isinstance(data["d"], list)
+            and len(data["d"]) > 0
+            and data["d"][0].get("stato") == "Nessuna informazione alla palina."
+        )
+
+    def _should_renew_api_key(self, data: dict[str, Any]) -> bool:
+        """Check if API response indicates invalid API key."""
+        return (
+            "d" in data
+            and isinstance(data["d"], list)
+            and len(data["d"]) > 0
+            and data["d"][0].get("stato") == "Chiave non valida"
+        )
+
     async def async_get_stop_arrivals(
         self, stop_id: str, line_filter: str | None = None
     ) -> list[ANMArrival]:
@@ -239,110 +379,30 @@ class ANMAPIClient:
             ANMAPIClientError: If the API request fails
         """
         session = await self._get_session()
+        url = f"{self._api_base_url}{PREDICTIONS_ENDPOINT}"
+        headers = self._get_predictions_headers()
+        api_key = await self._get_api_key()
+        payload = {"Palina": stop_id, "key": api_key}
+        allowed_lines = self._parse_line_filter(line_filter)
 
         _LOGGER.debug("Fetching arrivals for stop %s", stop_id)
         _LOGGER.debug("Using line filter: %s", line_filter)
-        url = f"{self._api_base_url}{PREDICTIONS_ENDPOINT}"
         _LOGGER.debug("API URL: %s", url)
 
-        headers = {
-            "accept": "application/json",
-            "accept-language": "it-IT,it;q=0.9,en;q=0.8",
-            "cache-control": "no-cache",
-            "origin": "https://www.anm.it",
-            "pragma": "no-cache",
-            "referer": "https://www.anm.it/",
-            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-        }
-
-        api_key = await self._get_api_key()
-        payload = {"Palina": stop_id, "key": api_key}
-
         try:
-            async with session.post(url, json=payload, headers=headers) as response:
-                text = await response.text()
+            data = await self._fetch_predictions_data(session, url, payload, headers)
 
-                if response.status != 200:
-                    raise ANMAPIClientError(
-                        f"API returned status {response.status}: {text}"
-                    )
-
-                data = await response.json()
-                _LOGGER.debug("Received data: %s", data)
-
-                # Check for API key error
-                if (
-                    "d" in data
-                    and isinstance(data["d"], list)
-                    and len(data["d"]) > 0
-                ):
-                    if data["d"][0].get("stato") == "Chiave non valida":
-                        _LOGGER.info("API key invalid, renewing...")
-                        self._api_key = None
-                        api_key = await self._get_api_key()
-                        payload["key"] = api_key
-                        async with session.post(
-                            url, json=payload, headers=headers
-                        ) as retry_response:
-                            data = await retry_response.json()
-
-                # Check for no information at the stop
-                if (
-                    "d" in data
-                    and isinstance(data["d"], list)
-                    and len(data["d"]) > 0
-                ):
-                    if data["d"][0].get("stato") == "Nessuna informazione alla palina.":
-                        return []
-
-                # Parse line filter if provided (support comma-separated values)
-                allowed_lines = None
-                if line_filter:
-                    allowed_lines = [line.strip() for line in line_filter.split(",")]
-                    _LOGGER.debug("Filtering by lines: %s", allowed_lines)
-
-                # Extract and format arrivals ANMArrival
-                arrivals = list[ANMArrival]()
-                raw_arrivals = data.get("d", [])
-                if isinstance(raw_arrivals, list):
-                    for item in raw_arrivals:
-                        # Skip error messages
-                        if item.get("stato") == "Nessuna informazione alla palina.":
-                            continue
-
-                        line = item.get("linea", "").strip()
-
-                        # Apply line filter if specified
-                        if allowed_lines and line not in allowed_lines:
-                            _LOGGER.debug("Skipping line %s due to filter", line)
-                            continue
-
-                        time_str = item.get("time", "") # e.g. "09:46"
-                        time_min = item.get("timeMin", "") # e.g. "7" like minutes to arrival
-                        destination = item.get("nome", "") # e.g. "GIULIO CESARE - San Vitale" , Stop name
-                        stop_id = item.get("id", "") # e.g. "2103" , Stop ID
-
-                        # Parse time to get actual arrival time
-                        arrival_time = self._parse_anm_time(time_str)
-
-                        arrivals.append(
-                            {
-                                "line": line,
-                                "destination": destination,
-                                "arrival_time": arrival_time.isoformat(sep="T", timespec="minutes") if arrival_time else time_str,
-                                "time_minutes": int(time_min) if time_min.isdigit() else time_min,
-                                "stop_id": stop_id,
-                            }
-                        )
-
-                # Sort by arrival time if available
-                arrivals.sort(
-                    key=lambda x: (
-                        x["time_minutes"]
-                    )
+            # Handle invalid API key
+            if self._should_renew_api_key(data):
+                data = await self._handle_invalid_api_key(
+                    session, url, payload, headers
                 )
 
-                return arrivals
+            # Check for no information at the stop
+            if self._should_return_empty(data):
+                return []
+
+            return self._extract_arrivals_from_data(data, allowed_lines)
 
         except aiohttp.ClientError as err:
             _LOGGER.error("Error fetching stop arrivals: %s", err)
@@ -350,5 +410,3 @@ class ANMAPIClient:
         except Exception as err:
             _LOGGER.error("Unexpected error: %s", err)
             raise ANMAPIClientError(f"Unexpected error: {err}") from err
-
-

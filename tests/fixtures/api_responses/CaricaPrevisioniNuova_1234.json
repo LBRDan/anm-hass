@@ -1,0 +1,34 @@
+{
+  "d": [
+    {
+      "__type": "ServiceInfoAnmLinee.ServiceInfoAnmLineeClasse+Previsione",
+      "id": "1234",
+      "nome": "Piazza Cavour",
+      "time": "09:39",
+      "linea": "R7",
+      "timeMin": "0",
+      "stato": null,
+      "Occupazione": false
+    },
+    {
+      "__type": "ServiceInfoAnmLinee.ServiceInfoAnmLineeClasse+Previsione",
+      "id": "1234",
+      "nome": "Piazza Cavour",
+      "time": "09:40",
+      "linea": "X2",
+      "timeMin": "0",
+      "stato": null,
+      "Occupazione": false
+    },
+    {
+      "__type": "ServiceInfoAnmLinee.ServiceInfoAnmLineeClasse+Previsione",
+      "id": "1234",
+      "nome": "Piazza Cavour",
+      "time": "09:40",
+      "linea": "X1",
+      "timeMin": "0",
+      "stato": null,
+      "Occupazione": false
+    }
+  ]
+}

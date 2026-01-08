@@ -1,11 +1,12 @@
 """Data update coordinator for ANM integration."""
 
-import asyncio
+from __future__ import annotations
+
 import logging
 from datetime import datetime, timedelta
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .api import ANMAPIClient, ANMAPIClientError
 
@@ -62,10 +63,14 @@ class ANMDataUpdateCoordinator(DataUpdateCoordinator[dict[str, dict]]):
                     "stop_name": stop_name,
                     "line_filter": line_filter,
                     "arrivals": arrival_data or [],
-                    "last_updated": datetime.now().isoformat(sep="T", timespec="seconds"),
+                    "last_updated": datetime.now().isoformat(
+                        sep="T", timespec="seconds"
+                    ),
                 }
             except ANMAPIClientError as err:
-                _LOGGER.error("Error updating stop %s (%s): %s", stop_id, stop_name, err)
+                _LOGGER.error(
+                    "Error updating stop %s (%s): %s", stop_id, stop_name, err
+                )
                 errors[stop_id] = str(err)
                 # Keep existing data if update fails, just update error status
                 if self.data and stop_id in self.data:

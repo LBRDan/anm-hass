@@ -1,10 +1,11 @@
 """Config flow for ANM integration."""
 
-import logging
-import voluptuous as vol
+from __future__ import annotations
 
+import logging
+
+import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 
@@ -29,12 +30,10 @@ _LOGGER = logging.getLogger(__name__)
 # Schema for step 1 - API configuration
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
-        vol.Optional(
-            CONF_API_BASE_URL, default=DEFAULT_API_BASE_URL
-        ): str,
-        vol.Optional(
-            CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL
-        ): vol.All(vol.Coerce(int), vol.Range(min=10, max=3600)),
+        vol.Optional(CONF_API_BASE_URL, default=DEFAULT_API_BASE_URL): str,
+        vol.Optional(CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL): vol.All(
+            vol.Coerce(int), vol.Range(min=10, max=3600)
+        ),
         vol.Optional(CONF_TIMEOUT, default=DEFAULT_TIMEOUT): vol.All(
             vol.Coerce(int), vol.Range(min=5, max=60)
         ),
@@ -89,9 +88,23 @@ class ANMConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._stops: list[dict] = []
         self._available_stops: list[dict] = []
 
-    async def async_step_user(
-        self, user_input: dict | None = None
-    ) -> FlowResult:
+    async def async_step_choice(self, user_input=None):
+        return self.async_show_menu(
+            step_id="choice",
+            description_placeholders={
+                "stops_list": "\n".join(
+                    f"- {stop[CONF_STOP_NAME]} ({stop[CONF_STOP_ID]})"
+                    for stop in self._stops
+                ),
+            },
+            menu_options={"add_item": "Add another item", "finish": "Finish and Save"},
+        )
+
+    async def async_step_add_item(self, user_input=None):
+        # Logic to show the form again
+        return await self.async_step_stops()
+
+    async def async_step_user(self, user_input: dict | None = None) -> FlowResult:
         """Handle the initial step - API configuration.
 
         Args:
@@ -108,7 +121,9 @@ class ANMConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
                 # Fetch stops for autocomplete
                 api_client = api.ANMAPIClient(
-                    api_base_url=user_input.get(CONF_API_BASE_URL, DEFAULT_API_BASE_URL),
+                    api_base_url=user_input.get(
+                        CONF_API_BASE_URL, DEFAULT_API_BASE_URL
+                    ),
                     timeout=user_input.get(CONF_TIMEOUT, DEFAULT_TIMEOUT),
                 )
                 self._available_stops = await api_client.get_stops()
@@ -129,9 +144,7 @@ class ANMConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    async def async_step_stops(
-        self, user_input: dict | None = None
-    ) -> FlowResult:
+    async def async_step_stops(self, user_input: dict | None = None) -> FlowResult:
         """Handle adding stops with autocomplete from available stops."""
         errors: dict[str, str] = {}
 
@@ -142,8 +155,12 @@ class ANMConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # Dynamic schema with autocomplete
         stops_schema = vol.Schema(
             {
-                vol.Optional(CONF_STOP_ID): vol.In(stop_id_options) if stop_id_options else str,
-                vol.Optional(CONF_STOP_NAME): vol.In(stop_name_options) if stop_name_options else str,
+                vol.Required(CONF_STOP_ID): (
+                    vol.In(stop_id_options) if stop_id_options else str
+                ),
+                vol.Required(CONF_STOP_NAME): (
+                    vol.In(stop_name_options) if stop_name_options else str
+                ),
                 vol.Optional(CONF_LINE_FILTER): str,
             }
         )
@@ -168,25 +185,23 @@ class ANMConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         CONF_LINE_FILTER: line_filter if line_filter else None,
                     }
                 )
-            elif len(self._stops) > 0:
-                return await self.async_step_finish()
 
-        return self.async_show_form(
-            step_id="stops",
-            data_schema=stops_schema,
-            errors=errors,
-            last_step=len(self._stops) > 0,
-            description_placeholders={
-                "stops_list": "\n".join(
-                    f"- {stop[CONF_STOP_NAME]} ({stop[CONF_STOP_ID]})"
-                    for stop in self._stops
-                ),
-            },
-        )
+        if (len(errors) > 0) or (user_input is None):
+            return self.async_show_form(
+                step_id="stops",
+                data_schema=stops_schema,
+                errors=errors,
+                last_step=len(self._stops) > 0,
+                description_placeholders={
+                    "stops_list": "\n".join(
+                        f"- {stop[CONF_STOP_NAME]} ({stop[CONF_STOP_ID]})"
+                        for stop in self._stops
+                    ),
+                },
+            )
+        return await self.async_step_choice()
 
-    async def async_step_finish(
-        self, user_input: dict | None = None
-    ) -> FlowResult:
+    async def async_step_finish(self, user_input: dict | None = None) -> FlowResult:
         """Finish the config flow and create the entry.
 
         Args:

@@ -1,0 +1,24 @@
+{
+  "d": [
+    {
+      "__type": "ServiceInfoAnmLinee.ServiceInfoAnmLineeClasse+Previsione",
+      "id": "5678",
+      "nome": "Via Toledo",
+      "time": "09:46",
+      "linea": "151",
+      "timeMin": "7",
+      "stato": null,
+      "Occupazione": false
+    },
+    {
+      "__type": "ServiceInfoAnmLinee.ServiceInfoAnmLineeClasse+Previsione",
+      "id": "5678",
+      "nome": "Via Toledo",
+      "time": "09:52",
+      "linea": "151",
+      "timeMin": "13",
+      "stato": null,
+      "Occupazione": false
+    }
+  ]
+}

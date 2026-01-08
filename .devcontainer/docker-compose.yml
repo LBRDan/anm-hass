@@ -1,0 +1,11 @@
+version: "3.8"
+services:
+  # Update this to the name of the service you want to work with in your docker-compose.yml file
+  dev:
+    container_name: python-dev
+    image: python:3.13
+    command: tail -f /dev/null
+    restart: unless-stopped
+    volumes:
+      - ../:/workspaces/anm-hass:cached
+    working_dir: /workspaces/anm-hass
