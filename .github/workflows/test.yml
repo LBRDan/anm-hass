@@ -2,11 +2,13 @@ name: Tests
 
 on:
   # Trigger only on PR open to main or dev branches
-
   pull_request:
     branches:
       - main
       - dev
+  # Or run manually
+  workflow_dispatch:
+    
 
 jobs:
   test:
