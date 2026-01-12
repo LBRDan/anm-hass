@@ -8,7 +8,7 @@ on:
       - dev
   # Or run manually
   workflow_dispatch:
-    
+
 
 jobs:
   test:
@@ -49,8 +49,13 @@ jobs:
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5
-      if: matrix.python-version == '3.13.2'
+      if: ${{ !cancelled() && !failure() && matrix.python-version == '3.13.2' }}
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         files: ./coverage.xml
         fail_ci_if_error: false
+    - name: Upload test results to Codecov
+      if: ${{ !cancelled() && !failure() && matrix.python-version == '3.13.2' }}
+      uses: codecov/test-results-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
