@@ -50,3 +50,6 @@ Thumbs.db
 # Pytest
 .pytest_cache/
 htmlcov/
+junit.xml
+coverage.xml
+.coverage

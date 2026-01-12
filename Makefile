@@ -36,6 +36,11 @@ test-coverage: ## Run tests with coverage report
 	@echo "Running tests with coverage..."
 	pytest tests/ --cov=custom_components/anm --cov-report=html --cov-report=term
 
+
+test-ci: ## Run tests for CI (coverage xml)
+	@echo "Running tests for CI with coverage..."
+	pytest tests/ --cov=custom_components/anm --cov-report=xml --cov-branch --junitxml=junit.xml -o junit_family=legacy
+
 # Format code with ruff
 format: ## Format code with ruff
 	@echo "Formatting code..."

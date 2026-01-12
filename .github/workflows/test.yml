@@ -1,10 +1,12 @@
 name: Tests
 
 on:
-  push:
-    branches: [ main, dev ]
+  # Trigger only on PR open to main or dev branches
+
   pull_request:
-    branches: [ main, dev ]
+    branches:
+      - main
+      - dev
 
 jobs:
   test:
@@ -12,11 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.13"]
+        python-version: ["3.13.2"]
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+          fetch-depth: 2
     
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
@@ -28,25 +32,22 @@ jobs:
         curl -LsSf https://astral.sh/uv/install.sh | sh
         echo "$HOME/.local/bin" >> $GITHUB_PATH
     
-    - name: Install dependencies
+    - name: Create UV virtual environment
       run: |
-        uv pip install -e .
-        uv pip install -r requirements-test.txt
+        uv venv
     
-    - name: Run tests
+    - name: UV Sync dependencies
       run: |
-        uv pip install pytest pytest-asyncio pytest-aiohttp aioresponses pytest-homeassistant-custom-component
-        pytest tests/ -v --tb=short
+        uv sync
     
     - name: Run tests with coverage
       run: |
-        uv pip install coverage
-        pytest tests/ --cov=custom_components/anm --cov-report=xml --cov-report=term-missing
+        uv run make test-ci
       continue-on-error: true
     
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
-      if: matrix.python-version == '3.13'
+      uses: codecov/codecov-action@v5
+      if: matrix.python-version == '3.13.2'
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         files: ./coverage.xml
